@@ -19,7 +19,7 @@ frontend-orange/src/                 Vue 頁面、元件與樣式
 frontend-orange/public/              前端公用資源
 deploy/                              部署說明、資料庫升級腳本
 migration_*.sql                      各功能的 SQL Server 遷移腳本
-scripts/                             API 與 UI 驗證腳本
+scripts/                             可重複執行的本機 API / 錢包整合測試
 uploads/                             本機商品及首頁圖片，不納入 Git
 ```
 
@@ -37,7 +37,7 @@ mvn test
 mvn package
 ```
 
-啟動前請透過環境變數設定資料庫連線；不要把資料庫密碼、SMTP 授權碼或 AI API Key 寫入程式碼或提交至 GitHub。資料庫升級請依 `deploy/部署說明.md` 操作，僅在目標資料庫執行該版本要求的 SQL。
+啟動前請透過環境變數設定資料庫連線；不要把資料庫密碼、SMTP 授權碼或 AI API Key 寫入程式碼或提交至 GitHub。資料庫升級請依 `deploy/部署說明.md` 操作，僅在目標資料庫執行該版本要求的 SQL。一次性清庫 SQL 不納入 Git，日常部署時不要執行。
 
 ## 部署
 

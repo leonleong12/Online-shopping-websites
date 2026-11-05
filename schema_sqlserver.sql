@@ -196,18 +196,6 @@ BEGIN
 END;
 GO
 
-IF NOT EXISTS (SELECT 1 FROM dbo.categories WHERE name = N'General')
-    INSERT INTO dbo.categories (name, description) VALUES (N'General', N'General products');
-GO
-
-IF NOT EXISTS (SELECT 1 FROM dbo.products WHERE name = N'Test product')
-BEGIN
-    INSERT INTO dbo.products (category_id, name, description, price, stock)
-    SELECT id, N'Test product', N'Seed data for local testing', 99.00, 100
-    FROM dbo.categories WHERE name = N'General';
-END;
-GO
-
 CREATE OR ALTER VIEW dbo.sales_summary AS
 SELECT CAST(o.created_at AS date) AS sales_date,
        COUNT(DISTINCT o.id) AS order_count,
