@@ -1,0 +1,28 @@
+async page=>{
+ const ok=(v,m)=>{if(!v)throw new Error(m)};
+ const layout=async name=>{for(const theme of ['light','dark']){await page.evaluate(value=>{document.documentElement.dataset.theme=value;document.documentElement.style.colorScheme=value},theme);for(const width of [1280,390,320]){await page.setViewportSize({width,height:820});await page.waitForTimeout(120);ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`${name} ${theme} overflow ${width}`);}}await page.setViewportSize({width:1280,height:820});};
+ await layout('checkout');
+ const layers=await page.evaluate(()=>({modal:+getComputedStyle(document.querySelector('.modal-backdrop')).zIndex,support:+getComputedStyle(document.querySelector('.support-widget')).zIndex}));ok(layers.modal>layers.support,'support blocks checkout');
+ await page.getByRole('button',{name:'提交订单 →',exact:true}).click();
+ await page.getByRole('heading',{name:'订单详情',exact:true}).waitFor();
+ await page.locator('.payment-deadline strong').waitFor();
+ await layout('pending order');
+ await page.screenshot({path:'output/playwright/audit-checkout-order.png',fullPage:true});
+ await page.getByRole('button',{name:/确认支付/}).click();
+ await page.getByRole('heading',{name:'我的订单',exact:true}).waitFor();
+ const newest=page.locator('.order-card').first();
+ await newest.locator('pre').getByText('UI-CARD-A',{exact:false}).waitFor();
+ await newest.getByRole('button',{name:'确认收货',exact:true}).click();
+ await newest.getByText('已完成',{exact:true}).waitFor();
+ await layout('paid order cards');
+ await page.screenshot({path:'output/playwright/audit-paid-order.png',fullPage:true});
+ await page.locator('.support-launcher').click();
+ await page.getByRole('button',{name:'售后工单',exact:false}).click();
+ await page.locator('.support-ticket-row').filter({hasText:'验收工单'}).click();
+ await page.locator('.support-reply').getByText('验收处理结果',{exact:true}).waitFor();
+ await layout('buyer ticket detail');
+ await page.getByRole('button',{name:'收起客服面板'}).click();
+ await page.reload();
+ ok(await page.locator('html').getAttribute('data-theme')==='dark','theme preference lost');
+ return {cart:true,checkout:true,payment:true,autoCard:true,receipt:true,ticketReply:true,themePersistence:true,layoutChecks:30};
+}

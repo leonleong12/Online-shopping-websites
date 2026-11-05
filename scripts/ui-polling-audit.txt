@@ -1,0 +1,31 @@
+async page => {
+ const ok=(v,m)=>{if(!v)throw new Error(m)};
+ const auth=await (await page.request.post('http://localhost:8081/api/auth/login',{data:{username:'walletui_20261018_admin',password:'WalletQa!2026Only'}})).json();
+ const headers={Authorization:`Bearer ${auth.token}`}, base='http://localhost:8081/api';
+ const config=await (await page.request.get(`${base}/admin/support/config`,{headers})).json();
+ try {
+  await page.request.put(`${base}/admin/support/config`,{headers,data:{...config,adminOnline:true}});
+  if(await page.locator('.support-launcher').count()) await page.locator('.support-launcher').click();
+  await page.getByRole('button',{name:'即时对话',exact:true}).click();
+  await page.getByText('主理人在线 · 真人即时接待',{exact:true}).waitFor({timeout:9000});
+  const sessions=await (await page.request.get(`${base}/admin/support/sessions`,{headers})).json();
+  const session=sessions.find(s=>s.username==='walletui_20261018_buyer');
+  const marker=`同步验收 ${Date.now()}`;
+  ok((await page.request.post(`${base}/admin/support/sessions/${session.id}/messages`,{headers,data:{content:marker}})).ok(),'admin message failed');
+  await page.locator('.support-message.admin').getByText(marker,{exact:true}).waitFor({timeout:9000});
+  await page.getByRole('button',{name:'收起客服面板'}).click();
+  await page.request.post(`${base}/admin/support/sessions/${session.id}/messages`,{headers,data:{content:`未读 ${marker}`}});
+  await page.locator('.support-launcher-dot').waitFor({timeout:9000});
+  await page.locator('.support-launcher').click();
+  await page.locator('.support-message.admin').getByText(`未读 ${marker}`,{exact:true}).waitFor({timeout:9000});
+  await page.getByRole('button',{name:'售后工单',exact:false}).click();
+  if(await page.getByRole('button',{name:'← 返回工单列表',exact:true}).count()) await page.getByRole('button',{name:'← 返回工单列表',exact:true}).click();
+  await page.locator('.support-ticket-row').filter({hasText:'UI新建与同步验收'}).click();
+  const tickets=await (await page.request.get(`${base}/admin/support/tickets`,{headers})).json();
+  const ticket=tickets.find(t=>t.title==='UI新建与同步验收'&&t.username==='walletui_20261018_buyer');
+  await page.request.put(`${base}/admin/support/tickets/${ticket.id}`,{headers,data:{adminReply:marker,status:'REPLIED'}});
+  await page.locator('.support-reply').getByText(marker,{exact:true}).waitFor({timeout:9000});
+  await page.getByRole('button',{name:'收起客服面板'}).click();
+  await page.evaluate(()=>window.__novaPollingAudit={chat:true,unread:true,ticket:true});
+ } finally { await page.request.put(`${base}/admin/support/config`,{headers,data:config}); }
+}

@@ -1,0 +1,150 @@
+/* Shared surfaces; the palette changes without altering page layout. */
+html, body, .app-shell { background-color: var(--bg-primary); color: var(--text-primary); }
+.site-header, .main-nav { background-color: var(--bg-primary); }
+.main-nav .compact-account-link { display: none; }
+@media (max-width: 900px) { .main-nav .compact-account-link { display: block; } }
+:root[data-theme="dark"] .support-message:not(.user) p,
+:root[data-theme="dark"] .support-welcome { background-color: var(--bg-elevated); }
+.account-icon {
+  display: block;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.2;
+}
+
+/* The delivered secret is a distinct, readable receipt rather than loose text. */
+.delivered-cards {
+  min-width: 0;
+  margin-top: 20px;
+  padding: 18px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+}
+.delivered-cards-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.delivered-cards-head strong { font-size: 14px; font-weight: 500; }
+.delivered-cards-head > div { display: flex; flex-wrap: wrap; gap: 14px; }
+.delivered-cards pre, .admin-delivered-cards pre {
+  max-width: 100%;
+  margin: 14px 0 0;
+  padding: 14px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  font: 13px/1.8 Consolas, 'SFMono-Regular', monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+.admin-delivered-cards summary { color: var(--accent-color); cursor: pointer; }
+.admin-delivered-cards pre { min-width: 150px; }
+@media (max-width: 359px) { .delivered-cards { padding: 12px; } }
+
+/* Let long product names shrink inside the cart's grid on narrow screens. */
+.cart-layout, .cart-list, .cart-item, .cart-copy, .summary { min-width: 0; }
+.cart-copy h2 { overflow-wrap: anywhere; }
+@media (max-width: 900px) {
+  .cart-layout { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 680px) {
+  .cart-item { grid-template-columns: 70px minmax(0, 1fr) auto; }
+}
+@media (max-width: 359px) {
+  .cart-item { padding: 12px; gap: 10px; }
+}
+
+/* These colors have different roles in the original light palette. */
+:root[data-theme="dark"] {
+  .auth-card input, .editor-card input, .editor-card select, .editor-card textarea,
+  .dialog textarea, .checkout-dialog input, .shipping-dialog input, .shipping-dialog select,
+  .site-setting-block input, .wallet-drawer input, .wallet-form input,
+  .wallet-form select, .wallet-form textarea, .wallet-search input {
+    background-color: var(--bg-elevated);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+  }
+  .primary, .hero-button, .product-tag, .bag-link i { color: var(--text-on-accent); }
+  .brand-symbol, .hero-note, .announcement, .toast { color: var(--text-on-dark); }
+  .hero-art img, .editorial-image img { mix-blend-mode: normal; }
+  .product-modal, .dialog { background-color: var(--bg-card); }
+  .image-wrap, .product-quantity button, .quantity button { background-color: var(--bg-elevated); }
+
+  /* Shade the edge of bright photos without changing the product's actual colors. */
+  .image-wrap::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border: 1px solid var(--image-border);
+    background: radial-gradient(ellipse at center, transparent 55%, var(--image-shade) 100%);
+  }
+  .product-tag, .quick-view { z-index: 1; }
+  .product-modal img, .detail-item img, .cart-item img, .site-image-preview, .image-preview img {
+    border: 1px solid var(--image-border);
+  }
+}
+
+.theme-toggle {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  padding: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--accent-color);
+}
+.theme-toggle:hover { background-color: var(--bg-elevated); border-color: var(--accent-color); }
+.theme-icon {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0;
+  transform: rotate(-65deg) scale(.65);
+  transition: opacity .25s ease, transform .35s cubic-bezier(.4, 0, .2, 1);
+}
+.theme-moon { transform: rotate(65deg) scale(.65); }
+.theme-icon.visible { opacity: 1; transform: rotate(0) scale(1); }
+.theme-toggle:focus-visible { outline: 2px solid var(--accent-color); outline-offset: 3px; }
+
+/* Keep the existing image zoom, quick-view fade and drawer entrance animations. */
+body, body *, body *::before, body *::after {
+  transition: background-color .35s cubic-bezier(.4, 0, .2, 1), color .25s ease,
+    border-color .35s ease;
+}
+.theme-icon { transition: opacity .25s ease, transform .35s cubic-bezier(.4, 0, .2, 1); }
+.image-wrap img { transition: transform .5s, border-color .35s ease; }
+.quick-view { transition: opacity .2s, background-color .35s cubic-bezier(.4, 0, .2, 1), color .25s ease; }
+
+/* Leave room for the wallet and switch before the mobile layout takes over. */
+@media (min-width: 901px) {
+  .site-header { grid-template-columns: auto minmax(160px, 1fr) auto; gap: clamp(16px, 2.5vw, 32px); }
+  .header-actions { gap: 18px; }
+}
+@media (max-width: 680px) { .theme-toggle { width: 32px; height: 32px; flex-basis: 32px; } }
+@media (max-width: 359px) {
+  .site-header .brand { font-size: 17px; gap: 5px; padding: 0; }
+  .brand-symbol { width: 27px; height: 27px; }
+  .header-actions { gap: 6px; }
+  .header-actions .bag-link { padding: 0; }
+  .wallet-pill strong { font-size: 11px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}

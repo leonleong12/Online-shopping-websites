@@ -1,0 +1,70 @@
+async page => {
+  const ok = (condition, message) => { if (!condition) throw new Error(message) };
+  const errors = []; page.on('pageerror', error => errors.push(error.message));
+  const base = 'http://localhost:8082';
+  const login = await page.request.post(`${base}/api/auth/login`, { data: { username: 'protocolqa_20261018', password: 'ProtocolQa!2026Only' } });
+  ok(login.ok(), 'Isolated QA login failed');
+  const user = await login.json();
+  const headers = { Authorization: `Bearer ${user.token}` };
+  const original = await (await page.request.get(`${base}/api/admin/support/config`, { headers })).json();
+  try {
+    await page.evaluate(u => { localStorage.setItem('shop_token', u.token); localStorage.setItem('shop_user', JSON.stringify(u)); localStorage.setItem('novamart_theme', 'light') }, user);
+    await page.reload(); await page.setViewportSize({ width: 1280, height: 900 });
+    await page.locator('.main-nav').getByRole('button', { name: '客服与工单', exact: true }).click();
+    await page.locator('.support-settings summary').click();
+    ok(await page.locator('.support-launcher').count() === 0, 'Buyer chat launcher obstructs admin controls');
+    const protocol = page.getByLabel('API 协议', { exact: true });
+    const model = page.getByRole('textbox', { name: '模型', exact: true });
+    const picker = page.getByLabel('获取的模型列表', { exact: true });
+    const fetch = page.getByRole('button', { name: '获取可用模型', exact: true });
+    ok(await protocol.inputValue() === 'RESPONSES', 'Responses default lost');
+    ok(await protocol.locator('option').count() === 3, 'Protocol option count incorrect');
+    await fetch.click(); await picker.waitFor();
+    const count = await picker.locator('option').count() - 1;
+    ok(count > 0, 'Provider models missing');
+    await picker.selectOption({ index: 1 });
+    ok(await model.inputValue() === await picker.inputValue(), 'Model selection did not update editable field');
+    await model.fill('manual-custom-model');
+    ok(await model.inputValue() === 'manual-custom-model', 'Manual model entry broken');
+    await fetch.click(); await page.locator('.support-model-notice').waitFor();
+    ok(await model.inputValue() === 'manual-custom-model', 'Fetching overwrote manual model');
+    await protocol.selectOption('CHAT_COMPLETIONS');
+    ok(await picker.count() === 0, 'Stale list not reset on protocol change');
+    await model.fill(original.aiModel);
+    await page.getByRole('button', { name: '保存配置', exact: true }).click();
+    await page.getByText('客服配置已保存', { exact: true }).waitFor();
+    await page.reload();
+    await page.locator('.main-nav').getByRole('button', { name: '客服与工单', exact: true }).click();
+    await page.locator('.support-settings summary').click();
+    ok(await protocol.inputValue() === 'CHAT_COMPLETIONS', 'Selected protocol not persisted');
+    await protocol.selectOption('ANTHROPIC_MESSAGES');
+    await fetch.click(); await picker.waitFor();
+    const layouts = [];
+    for (const theme of ['light', 'dark']) {
+      if (await page.locator('html').getAttribute('data-theme') !== theme) await page.locator('.theme-toggle').click();
+      for (const width of [1280, 390, 320]) {
+        await page.setViewportSize({ width, height: 900 }); await page.waitForTimeout(400);
+        ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Layout overflow: ${theme}/${width}`);
+        ok(await fetch.isVisible(), 'Fetch button hidden');
+        const rect = await model.boundingBox(); ok(rect.width > 60, `Model input squeezed: ${width}`);
+        const keyRect = await page.getByLabel('API Key', { exact: true }).boundingBox();
+        ok(keyRect.height < 55, 'API Key field stretched by adjacent model list');
+        layouts.push(`${theme}/${width}`);
+        if (width !== 320) await page.screenshot({ path: `output/playwright/protocol-models-${theme}-${width}.png`, fullPage: true });
+      }
+    }
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.route('**/api/admin/support/models', route => route.fulfill({ status: 502, contentType: 'application/json', body: JSON.stringify({ message: '供应商不支持模型列表接口，请手动填写模型名称' }) }));
+    await fetch.click(); await page.locator('.support-model-error').waitFor();
+    ok((await page.locator('.support-model-error').innerText()).includes('手动填写'), 'Model-list error not explained');
+    ok(await model.inputValue() === original.aiModel, 'Error overwrote model');
+    await page.unroute('**/api/admin/support/models');
+    ok(!errors.length, `Browser exceptions: ${errors.join('; ')}`);
+    return { fetchedModels: count, freeModelEntry: true, persistedProtocol: true, protocolChoices: 3, layouts, errorFallback: true, browserErrors: errors };
+  } finally {
+    await page.request.put(`${base}/api/admin/support/config`, { headers, data: original });
+    await page.request.post(`${base}/api/auth/logout`, { headers });
+    await page.evaluate(() => { localStorage.removeItem('shop_token'); localStorage.removeItem('shop_user'); localStorage.setItem('novamart_theme', 'light') });
+    await page.goto(base);
+  }
+}

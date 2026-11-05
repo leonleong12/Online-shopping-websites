@@ -1,0 +1,27 @@
+async page=>{
+ const ok=(v,m)=>{if(!v)throw new Error(m)};
+ const prefix='walletui_20261018', password='WalletQa!2026Only',base='http://localhost:8081/api';
+ const login=async suffix=>(await (await page.request.post(`${base}/auth/login`,{data:{username:`${prefix}_${suffix}`,password}})).json()).token;
+ const admin=await login('admin'), buyer=await login('buyer'),headers={Authorization:`Bearer ${admin}`},buyerHeaders={Authorization:`Bearer ${buyer}`};
+ const request=async(path,data,method='POST',h=headers)=>{const r=await page.request.fetch(`${base}${path}`,{method,headers:h,...(data===undefined?{}:{data})});ok(r.ok(),`request failed ${path}`);return r.json()};
+ const products=await request('/admin/products',undefined,'GET');
+ const physical=products.find(p=>p.name===`${prefix}_physical`);
+ const nav=name=>page.locator('.main-nav').getByRole('button',{name,exact:true}).click();
+ const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aC1kAAAAASUVORK5CYII=','base64');
+ const site=await request('/admin/site-settings',undefined,'GET');
+ try{
+  await nav('首页设置');
+  const files=page.locator('.site-setting-block input[type=file]');
+  await files.first().setInputFiles({name:'ui-hero-audit.png',mimeType:'image/png',buffer:png});
+  await files.last().setInputFiles({name:'ui-note-audit.png',mimeType:'image/png',buffer:png});
+  await page.getByRole('button',{name:'保存首页图片',exact:false}).click();
+  await page.getByText('首页图片已保存',{exact:true}).waitFor();
+  await nav('所有商品');await nav('首页设置');
+  const saved=await page.locator('.site-setting-block input[type=text]').evaluateAll(inputs=>inputs.map(input=>input.value));
+  ok(saved.every(v=>v.startsWith('/uploads/site/')),'site image URLs not persisted');
+  for(const url of saved) ok((await page.request.get(`http://localhost:8081${url}`)).ok(),'saved site image not reachable');
+  for(const image of await page.locator('.site-image-preview').all())ok(await image.evaluate(el=>el.complete&&el.naturalWidth>0),'site preview broken after save');
+ }finally{await request('/admin/site-settings',site,'PUT')}
+ await page.reload();
+ await page.evaluate(()=>window.__novaAdminAudit={shipping:true,humanReply:true,ticketReply:true,credit:true,debit:true,ledger:true,productImageSave:true,siteImagesSave:true});
+}

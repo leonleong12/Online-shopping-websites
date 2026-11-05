@@ -1,0 +1,53 @@
+async page => {
+ const ok=(condition,message)=>{if(!condition)throw new Error(message)};
+ const base='http://localhost:8081';
+ const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ await page.goto(base);await page.evaluate(()=>{localStorage.removeItem('shop_token');localStorage.removeItem('shop_user')});await page.reload();
+ const checks=[];
+ for(const width of [390,320]){
+  await page.setViewportSize({width,height:820});await page.locator('.mobile-toggle').click();
+  const entry=page.locator('.compact-account-link');await entry.waitFor({state:'visible'});
+  ok(await entry.innerText()==='登录 / 注册','Mobile sign-in label incorrect');await entry.click();
+  await page.getByRole('textbox',{name:'用户名',exact:true}).waitFor({state:'visible'});
+  ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Mobile sign-in overflow');
+  checks.push(`signed-out-${width}`);await page.locator('.brand').click();
+ }
+ const login=async suffix=>{const response=await page.request.post(`${base}/api/auth/login`,{data:{username:`walletui_20261018_${suffix}`,password:'WalletQa!2026Only'}});ok(response.ok(),'Fixture login failed');return response.json()};
+ const buyer=await login('buyer');
+ await page.evaluate(user=>{localStorage.setItem('shop_token',user.token);localStorage.setItem('shop_user',JSON.stringify(user))},buyer);await page.reload();await page.locator('.wallet-pill').waitFor();
+ for(const width of [390,320]){
+  await page.setViewportSize({width,height:820});await page.locator('.mobile-toggle').click();
+  const entry=page.locator('.compact-account-link');await entry.waitFor({state:'visible'});
+  ok(await entry.innerText()==='我的订单','Mobile account label incorrect');await entry.click();
+  await page.locator('.order-card').first().waitFor({state:'visible'});
+  ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Mobile orders overflow');
+  checks.push(`signed-in-orders-${width}`);
+  if(width===390)await page.screenshot({path:'output/playwright/audit-final-mobile-orders.png'});
+  await page.locator('.brand').click();
+ }
+ await page.setViewportSize({width:1280,height:820});
+ ok(!(await page.locator('.compact-account-link').isVisible()),'Desktop account entry duplicated');
+ const circle=await page.locator('.account-icon').evaluate(el=>({width:el.getBoundingClientRect().width,height:el.getBoundingClientRect().height,stroke:getComputedStyle(el).strokeWidth}));
+ ok(circle.width===24&&circle.height===24&&circle.stroke==='1.2px','Account circle incorrect');
+ if(await page.locator('html').getAttribute('data-theme')!=='dark')await page.locator('.theme-toggle').click();
+ await page.getByRole('button',{name:'打开导购与客服',exact:true}).click();
+ const bubble=page.locator('.support-message:not(.user) p').first();await bubble.waitFor();await page.waitForTimeout(450);
+ const background=await bubble.evaluate(el=>getComputedStyle(el).backgroundColor);
+ ok(background==='rgb(46, 41, 39)',`Dark bubble background incorrect: ${background}`);
+ await page.screenshot({path:'output/playwright/audit-final-chat-dark.png'});
+ await page.getByRole('button',{name:'收起客服面板',exact:true}).click();
+ const admin=await login('admin');await page.evaluate(user=>{localStorage.setItem('shop_token',user.token);localStorage.setItem('shop_user',JSON.stringify(user))},admin);await page.reload();
+ await page.locator('.main-nav').getByRole('button',{name:'客服与工单',exact:true}).click();
+ await page.locator('.support-settings summary').click();
+ const model=page.getByRole('textbox',{name:'模型',exact:true});ok(await model.inputValue()==='gpt-5.6-luna','Release model incorrect');
+ ok(await page.locator('select#ai-model').count()===0,'Old model selector retained');
+ await page.screenshot({path:'output/playwright/audit-final-model-input.png',fullPage:true});
+ await page.setViewportSize({width:900,height:820});
+ ok(await page.locator('.compact-account-link').isVisible(),'Tablet account entry missing');
+ ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Tablet navigation overflow');
+ await page.setViewportSize({width:1280,height:820});await page.locator('.main-nav').getByRole('button',{name:'退出登录',exact:true}).click();
+ if(await page.locator('html').getAttribute('data-theme')==='dark')await page.locator('.theme-toggle').click();
+ await page.locator('.brand').click();
+ ok(!errors.length,`Browser exceptions: ${errors.join('; ')}`);
+ return {checks,circle,darkBubble:background,model:'gpt-5.6-luna',browserErrors:errors,assets:await page.locator('script[src]').evaluateAll(els=>els.map(el=>el.getAttribute('src')))};
+}

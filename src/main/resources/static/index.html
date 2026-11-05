@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#F7F4EF">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <title>NovaMart · 为生活挑选好物</title>
+    <script>
+      // Apply the saved preference before styles and Vue load, including after a refresh.
+      (() => {
+        let theme = 'light'
+        try { if (localStorage.getItem('novamart_theme') === 'dark') theme = 'dark' } catch {}
+        document.documentElement.dataset.theme = theme
+        document.documentElement.style.colorScheme = theme
+        document.querySelector('meta[name="theme-color"]').content = theme === 'dark' ? '#1C1917' : '#F7F4EF'
+      })()
+    </script>
+    <style>
+      html { background-color: #F7F4EF; }
+      html[data-theme="dark"] { background-color: #1C1917; }
+    </style>
+    <script type="module" crossorigin src="/assets/index-vysH_PBy.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-CmTeetCL.css">
+  </head>
+  <body>
+    <div id="app"></div>
+  </body>
+</html>

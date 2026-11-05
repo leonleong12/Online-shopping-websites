@@ -1,0 +1,23 @@
+.detail-item {
+  align-items: center;
+  gap: 14px;
+}
+
+.detail-item img {
+  width: 64px;
+  height: 64px;
+  flex: 0 0 64px;
+  object-fit: cover;
+  background: var(--c-e9e3dc);
+}
+
+.detail-item span {
+  flex: 1;
+  min-width: 0;
+  color: var(--c-49443d);
+}
+
+.detail-item strong {
+  flex: 0 0 auto;
+  color: var(--c-c75b35);
+}

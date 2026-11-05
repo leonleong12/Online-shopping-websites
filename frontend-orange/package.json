@@ -1,0 +1,13 @@
+{
+  "name": "online-shop-frontend-orange",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --configLoader runner",
+    "build": "vite build --configLoader runner",
+    "test": "node --test src/*.test.js"
+  },
+  "dependencies": { "axios": "^1.11.0", "vue": "^3.5.18" },
+  "devDependencies": { "@vitejs/plugin-vue": "^6.0.1", "vite": "^7.1.3" }
+}

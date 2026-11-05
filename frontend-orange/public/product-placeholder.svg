@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 700" role="img" aria-label="暂无商品图片">
+  <rect width="900" height="700" fill="#e9e3dc"/>
+  <rect x="245" y="190" width="410" height="300" rx="8" fill="#f8f5f1" stroke="#d8d0c7" stroke-width="4"/>
+  <circle cx="360" cy="300" r="34" fill="#d8d0c7"/>
+  <path d="M275 445 405 335l92 78 54-56 74 88" fill="none" stroke="#c2b8ad" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="450" y="550" text-anchor="middle" fill="#8a8177" font-family="Arial, sans-serif" font-size="24" letter-spacing="2">NOVAMART</text>
+</svg>

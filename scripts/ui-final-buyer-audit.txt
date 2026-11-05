@@ -1,0 +1,48 @@
+async page => {
+  const ok=(v,m)=>{if(!v)throw new Error(m)};
+  const prefix='walletui_20261018', password='WalletQa!2026Only';
+  await page.getByRole('heading',{name:'我的订单',exact:true}).waitFor();
+  const newest=page.locator('.order-card').first();
+  await newest.locator('pre').getByText('UI-CARD-B',{exact:false}).waitFor();
+  ok((await page.locator('.wallet-pill').innerText()).includes('60.00'),'wrong balance after payment');
+  await page.screenshot({path:'output/playwright/audit-instant-card.png',fullPage:true});
+  await newest.getByText('已完成',{exact:true}).waitFor();
+  const login=await page.request.post('http://localhost:8081/api/auth/login',{data:{username:`${prefix}_admin`,password}});
+  ok(login.ok(),'QA admin login failed');
+  const admin=(await login.json()).token, headers={Authorization:`Bearer ${admin}`};
+  const config=await (await page.request.get('http://localhost:8081/api/admin/support/config',{headers})).json();
+  try {
+    await page.request.put('http://localhost:8081/api/admin/support/config',{headers,data:{...config,adminOnline:true}});
+    await page.locator('.support-launcher').click();
+    await page.getByText('主理人在线 · 真人即时接待',{exact:true}).waitFor({timeout:9000});
+    await page.locator('.support-compose textarea').fill('UI 轮询验收，请真人接待');
+    await page.getByRole('button',{name:'发送 ↗',exact:true}).click();
+    await page.locator('.support-message.user').getByText('UI 轮询验收，请真人接待',{exact:true}).waitFor();
+    const sessions=await (await page.request.get('http://localhost:8081/api/admin/support/sessions',{headers})).json();
+    const id=sessions.find(s=>s.username===`${prefix}_buyer`).id;
+    await page.request.post(`http://localhost:8081/api/admin/support/sessions/${id}/messages`,{headers,data:{content:'UI 自动轮询验证成功'}});
+    await page.locator('.support-message.admin').getByText('UI 自动轮询验证成功',{exact:true}).waitFor({timeout:9000});
+    await page.getByRole('button',{name:'收起客服面板'}).click();
+    await page.request.post(`http://localhost:8081/api/admin/support/sessions/${id}/messages`,{headers,data:{content:'UI 未读红点验证'}});
+    await page.locator('.support-launcher-dot').waitFor({timeout:9000});
+    await page.locator('.support-launcher').click();
+    await page.locator('.support-message.admin').getByText('UI 未读红点验证',{exact:true}).waitFor();
+    await page.getByRole('button',{name:'售后工单',exact:false}).click();
+    await page.getByLabel('问题分类').selectOption('CARD_ISSUE');
+    const orderOptions=await page.getByLabel('关联订单').locator('option').all();
+    ok(orderOptions.length>1,'buyer order options missing');
+    await page.getByLabel('关联订单').selectOption(await orderOptions[1].getAttribute('value'));
+    await page.getByLabel('问题简述').fill('UI新建与同步验收');
+    await page.getByLabel('详细说明').fill('只用于本机自动化验收，不涉及真实订单');
+    await page.getByRole('button',{name:'提交工单 ↗',exact:true}).click();
+    await page.locator('.support-ticket-row').filter({hasText:'UI新建与同步验收'}).click();
+    const tickets=await (await page.request.get('http://localhost:8081/api/admin/support/tickets',{headers})).json();
+    const ticket=tickets.find(t=>t.title==='UI新建与同步验收'&&t.username===`${prefix}_buyer`);
+    ok(ticket,'UI created ticket not persisted');
+    await page.request.put(`http://localhost:8081/api/admin/support/tickets/${ticket.id}`,{headers,data:{adminReply:'UI 工单自动同步验证成功',status:'REPLIED'}});
+    await page.locator('.support-reply').getByText('UI 工单自动同步验证成功',{exact:true}).waitFor({timeout:9000});
+    await page.screenshot({path:'output/playwright/audit-live-ticket.png'});
+    await page.getByRole('button',{name:'收起客服面板'}).click();
+  } finally { await page.request.put('http://localhost:8081/api/admin/support/config',{headers,data:config}); }
+  return {paymentNavigation:true,autoCardReveal:true,singleDebit:true,receipt:true,humanChatPolling:true,unreadDot:true,ticketCreation:true,ticketReplyPolling:true};
+}
