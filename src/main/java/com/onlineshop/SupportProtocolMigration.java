@@ -4,11 +4,13 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.core.annotation.Order;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** Additive migration; keep existing AI settings and the previously selected Responses behavior. */
+/** Additive migration; keep existing settings and default new installations to Chat Completions. */
 @Component
+@Order(90)
 public class SupportProtocolMigration implements ApplicationRunner {
     private static final Logger log = LoggerFactory.getLogger(SupportProtocolMigration.class);
     private final JdbcTemplate db;
@@ -27,7 +29,7 @@ public class SupportProtocolMigration implements ApplicationRunner {
                 IF OBJECT_ID(N'dbo.support_config', N'U') IS NOT NULL
                    AND COL_LENGTH(N'dbo.support_config', N'ai_protocol') IS NULL
                 ALTER TABLE dbo.support_config ADD ai_protocol NVARCHAR(32) NOT NULL
-                    CONSTRAINT df_support_config_protocol DEFAULT N'RESPONSES'
+                    CONSTRAINT df_support_config_protocol DEFAULT N'CHAT_COMPLETIONS'
                     CONSTRAINT chk_support_config_protocol CHECK (ai_protocol IN ('CHAT_COMPLETIONS','RESPONSES','ANTHROPIC_MESSAGES'));
                 """);
     }

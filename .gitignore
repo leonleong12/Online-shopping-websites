@@ -12,4 +12,3 @@ src/main/resources/application-local.yml
 uploads/
 output/
 .jar-static-stage-*/
-deploy/reset_server_data.sql

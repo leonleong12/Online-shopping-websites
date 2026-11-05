@@ -7,18 +7,18 @@ BEGIN
         id INT NOT NULL CONSTRAINT pk_support_config PRIMARY KEY,
         admin_online BIT NOT NULL CONSTRAINT df_support_config_admin_online DEFAULT 0,
         ai_enabled BIT NOT NULL CONSTRAINT df_support_config_ai_enabled DEFAULT 1,
-        ai_base_url NVARCHAR(500) NOT NULL CONSTRAINT df_support_config_base_url DEFAULT N'https://api.aijws.com/v1',
+        ai_base_url NVARCHAR(500) NOT NULL CONSTRAINT df_support_config_base_url DEFAULT N'',
         ai_api_key NVARCHAR(500) NULL,
-        ai_model NVARCHAR(100) NOT NULL CONSTRAINT df_support_config_model DEFAULT N'qwen3.8-flash',
-        ai_protocol NVARCHAR(32) NOT NULL CONSTRAINT df_support_config_protocol DEFAULT N'RESPONSES'
+        ai_model NVARCHAR(100) NOT NULL CONSTRAINT df_support_config_model DEFAULT N'',
+        ai_protocol NVARCHAR(32) NOT NULL CONSTRAINT df_support_config_protocol DEFAULT N'CHAT_COMPLETIONS'
             CONSTRAINT chk_support_config_protocol CHECK (ai_protocol IN ('CHAT_COMPLETIONS','RESPONSES','ANTHROPIC_MESSAGES')),
-        welcome_message NVARCHAR(500) NOT NULL CONSTRAINT df_support_config_welcome DEFAULT N'您好，欢迎来到 NovaMart。今天想为日常添置点什么好物？',
+        welcome_message NVARCHAR(500) NOT NULL CONSTRAINT df_support_config_welcome DEFAULT CONVERT(NVARCHAR(500), 0xa8607d590cff226bce8f6567305220004e006f00760061004d006100720074000230ca4e2959f3603a4ee565385efb6d6e7fb970c04e484e7d5969721fff),
         CONSTRAINT chk_support_config_singleton CHECK (id = 1)
     );
 END;
 IF COL_LENGTH(N'dbo.support_config', N'ai_protocol') IS NULL
     ALTER TABLE dbo.support_config ADD ai_protocol NVARCHAR(32) NOT NULL
-        CONSTRAINT df_support_config_protocol DEFAULT N'RESPONSES'
+        CONSTRAINT df_support_config_protocol DEFAULT N'CHAT_COMPLETIONS'
         CONSTRAINT chk_support_config_protocol CHECK (ai_protocol IN ('CHAT_COMPLETIONS','RESPONSES','ANTHROPIC_MESSAGES'));
 IF NOT EXISTS (SELECT 1 FROM dbo.support_config WHERE id=1)
     INSERT INTO dbo.support_config(id) VALUES(1);

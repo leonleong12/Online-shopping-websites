@@ -19,7 +19,7 @@ frontend-orange/src/                 Vue 頁面、元件與樣式
 frontend-orange/public/              前端公用資源
 deploy/                              部署說明、資料庫升級腳本
 migration_*.sql                      各功能的 SQL Server 遷移腳本
-scripts/                             可重複執行的本機 API / 錢包整合測試
+scripts/                             本機 API、錢包與客服預設值驗證
 uploads/                             本機商品及首頁圖片，不納入 Git
 ```
 
@@ -37,7 +37,7 @@ mvn test
 mvn package
 ```
 
-啟動前請透過環境變數設定資料庫連線；不要把資料庫密碼、SMTP 授權碼或 AI API Key 寫入程式碼或提交至 GitHub。資料庫升級請依 `deploy/部署說明.md` 操作，僅在目標資料庫執行該版本要求的 SQL。一次性清庫 SQL 不納入 Git，日常部署時不要執行。
+啟動前請透過環境變數設定資料庫連線；不要把資料庫密碼、SMTP 授權碼或 AI API Key 寫入程式碼或提交至 GitHub。資料庫升級請依 `deploy/部署說明.md` 操作，僅在目標資料庫執行該版本要求的 SQL。`deploy/reset_server_data.sql` 會清空商城資料，只能在完成備份並明確確認後由管理員手動執行；不可用於一般部署。
 
 ## 部署
 
@@ -46,3 +46,5 @@ mvn package
 ## GitHub 注意事項
 
 `.gitignore` 排除建置輸出、IDE 設定、執行記錄、本機設定、上傳圖片和封裝輸出。上傳前請確認沒有提交任何 `.env`、`application-local.yml`、資料庫備份、真實使用者資料或憑證。`uploads/` 請獨立備份與部署，不要因為被忽略就當作已保存。
+
+`scripts/check-support-defaults.ps1` 以本機 SQL Server 暫存表驗證客服設定遷移；`scripts/playwright/check-support-defaults.cjs` 是登入後客服設定頁面的 Playwright 檢查函式。`deploy/reset_server_data.sql` 會刪除線上商店資料，須透過 sqlcmd 明確提供確認參數，而且會先備份並驗證資料庫；不可用於一般部署。

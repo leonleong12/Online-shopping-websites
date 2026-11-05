@@ -21,11 +21,11 @@ class SupportProtocolMigrationTest {
         verify(db, never()).execute(anyString());
     }
 
-    @Test void AuthorizedMigrationPreservesExistingSettingsAndUsesResponsesDefault() {
+    @Test void authorizedMigrationPreservesExistingSettingsAndUsesChatDefault() {
         var db = mock(JdbcTemplate.class);
         when(db.queryForObject(contains("HAS_PERMS_BY_NAME"), eq(Integer.class))).thenReturn(1);
         new SupportProtocolMigration(db).run(null);
-        verify(db).execute(contains("DEFAULT N'RESPONSES'"));
+        verify(db).execute(contains("DEFAULT N'CHAT_COMPLETIONS'"));
         verify(db, never()).update(anyString());
     }
 }

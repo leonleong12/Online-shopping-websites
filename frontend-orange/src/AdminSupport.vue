@@ -3,7 +3,7 @@ import { inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { formatUtcTime } from './dateTime'
 
 const api = inject('api')
-const config = ref({ adminOnline: false, aiEnabled: true, aiBaseUrl: 'https://api.aijws.com/v1', aiProtocol: 'RESPONSES', aiModel: 'qwen3.8-flash', welcomeMessage: '', aiApiKey: '', apiKeyConfigured: false })
+const config = ref({ adminOnline: false, aiEnabled: true, aiBaseUrl: '', aiProtocol: 'CHAT_COMPLETIONS', aiModel: '', welcomeMessage: '您好，欢迎来到 NovaMart。今天想为日常添置点什么好物？', aiApiKey: '', apiKeyConfigured: false })
 const models = ref([]), modelsLoading = ref(false), modelsNotice = ref(''), modelsError = ref('')
 let modelsRequest = 0
 watch(() => [config.value.aiBaseUrl, config.value.aiApiKey, config.value.aiProtocol], () => {
@@ -92,12 +92,12 @@ function status(value) { return ({ OPEN: '待处理', REPLIED: '店长已回复'
       <details class="support-settings">
         <summary>AI 导购参数配置 <span>{{ config.apiKeyConfigured ? 'API Key 已配置' : '尚未配置 API Key' }}</span></summary>
         <form @submit.prevent="saveConfig">
-          <label>API 地址<input v-model.trim="config.aiBaseUrl" type="url" required></label>
+          <label>API 地址<input v-model.trim="config.aiBaseUrl" type="url" placeholder="请输入 API 地址"></label>
           <label>API 协议<select v-model="config.aiProtocol" aria-label="API 协议"><option value="CHAT_COMPLETIONS">OpenAI Chat Completions</option><option value="RESPONSES">OpenAI Responses</option><option value="ANTHROPIC_MESSAGES">Anthropic Messages</option></select></label>
           <label>API Key<input v-model="config.aiApiKey" type="password" autocomplete="new-password" :placeholder="config.apiKeyConfigured ? '已配置，留空则保持不变' : '请输入服务端 API Key'"></label>
           <div class="support-model-field">
             <label for="ai-model">模型</label>
-            <div class="support-model-row"><input id="ai-model" v-model.trim="config.aiModel" type="text" maxlength="100" placeholder="请输入模型名称" required><button class="secondary" type="button" :disabled="modelsLoading || loading || !config.aiBaseUrl || (!config.apiKeyConfigured && !config.aiApiKey)" @click="fetchModels">{{ modelsLoading ? '获取中…' : '获取可用模型' }}</button></div>
+            <div class="support-model-row"><input id="ai-model" v-model.trim="config.aiModel" type="text" maxlength="100" placeholder="请输入模型名称"><button class="secondary" type="button" :disabled="modelsLoading || loading || !config.aiBaseUrl || (!config.apiKeyConfigured && !config.aiApiKey)" @click="fetchModels">{{ modelsLoading ? '获取中…' : '获取可用模型' }}</button></div>
             <select v-if="models.length" aria-label="获取的模型列表" :value="models.some(model => model.id === config.aiModel) ? config.aiModel : ''" @change="config.aiModel = $event.target.value"><option value="" disabled>从列表选择，也可手动输入</option><option v-for="model in models" :key="model.id" :value="model.id">{{ model.name === model.id ? model.id : `${model.name} · ${model.id}` }}</option></select>
             <small v-if="modelsNotice" class="support-model-notice" role="status">{{ modelsNotice }}</small>
             <small v-if="modelsError" class="support-model-error" role="alert">{{ modelsError }}</small>

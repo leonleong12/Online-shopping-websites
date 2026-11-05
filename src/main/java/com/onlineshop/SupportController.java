@@ -177,7 +177,8 @@ public class SupportController {
         auth.admin(authorization);
         boolean online = bool(body.get("adminOnline"), "adminOnline");
         boolean enabled = bool(body.get("aiEnabled"), "aiEnabled");
-        String url = body.containsKey("aiBaseUrl") ? checkedBaseUrl(body.get("aiBaseUrl").toString()) : null;
+        String url = optional(body, "aiBaseUrl", 500);
+        if (url != null && !url.isBlank()) url = checkedBaseUrl(url);
         String model = optional(body, "aiModel", 100);
         String welcome = optional(body, "welcomeMessage", 500);
         String protocol = body.containsKey("aiProtocol") ? checkedProtocol(required(body, "aiProtocol")) : null;
@@ -213,6 +214,8 @@ public class SupportController {
                 c.put("ai_api_key", key);
             }
         }
+        if (Objects.toString(c.get("ai_base_url"), "").isBlank()) badRequest("请先填写 AI API 地址");
+        if (needsModel && Objects.toString(c.get("ai_model"), "").isBlank()) badRequest("请先填写模型名称");
         if (Objects.toString(c.get("ai_api_key"), "").isBlank()) badRequest("请先填写 AI API Key");
         return c;
     }
@@ -415,10 +418,10 @@ public class SupportController {
         return value;
     }
     private String protocol(Map<String, Object> cfg) {
-        return checkedProtocol(Objects.toString(cfg.get("ai_protocol"), "RESPONSES"));
+        return checkedProtocol(Objects.toString(cfg.get("ai_protocol"), "CHAT_COMPLETIONS"));
     }
     private String apiRoot(Map<String, Object> cfg) {
-        String root = checkedBaseUrl(Objects.toString(cfg.get("ai_base_url"), "https://api.aijws.com/v1"))
+        String root = checkedBaseUrl(Objects.toString(cfg.get("ai_base_url"), ""))
                 .replaceFirst("/(?:responses|chat/completions|messages|models)$", "");
         return URI.create(root).getPath().isEmpty() ? root + "/v1" : root;
     }

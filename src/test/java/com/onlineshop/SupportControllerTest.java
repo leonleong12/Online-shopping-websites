@@ -33,7 +33,7 @@ class SupportControllerTest {
         ReflectionTestUtils.setField(controller,"http",http);
         config=new HashMap<>(Map.of("admin_online",false,"ai_enabled",true,
             "ai_base_url","https://api.aijws.com/v1","ai_model","stored-model",
-            "ai_api_key","test-key-not-real","welcome_message","Welcome"));
+            "ai_api_key","test-key-not-real","welcome_message","Welcome","ai_protocol","RESPONSES"));
         when(db.queryForMap("select * from support_config where id=1")).thenReturn(config);
         when(auth.admin(any())).thenReturn(1L); when(auth.user(any())).thenReturn(2L);
     }
@@ -80,7 +80,7 @@ class SupportControllerTest {
             assertTrue(payload.path("system").asText().contains("NovaMart"));
             assertEquals(1024,payload.path("max_tokens").asInt());
         }
-        assertFalse(config.containsKey("ai_protocol"),"Testing unsaved protocol must not persist it");
+        assertEquals("RESPONSES",config.get("ai_protocol"),"Testing unsaved protocol must not persist it");
     }
     @ParameterizedTest
     @ValueSource(strings={"CHAT_COMPLETIONS","RESPONSES","ANTHROPIC_MESSAGES"})
@@ -89,6 +89,23 @@ class SupportControllerTest {
         verify(db).update(contains("ai_protocol=coalesce(?,ai_protocol)"),eq(false),eq(true),isNull(),isNull(),isNull(),isNull(),isNull(),eq(protocol));
         config.put("ai_protocol",protocol);
         assertEquals(protocol,controller.adminConfig("Bearer test").get("aiProtocol"));
+    }
+    @Test void absentProtocolDefaultsToChatCompletions() {
+        config.remove("ai_protocol");
+        assertEquals("CHAT_COMPLETIONS",controller.adminConfig("Bearer test").get("aiProtocol"));
+    }
+    @Test void blankServiceSettingsCanBeSavedAlongsideUnicodeGreeting() {
+        controller.updateConfig("Bearer test",Map.of("adminOnline",false,"aiEnabled",false,
+            "aiBaseUrl","","aiModel","","aiProtocol","CHAT_COMPLETIONS","welcomeMessage",SupportDefaultsMigration.WELCOME));
+        verify(db).update(contains("ai_protocol=coalesce(?,ai_protocol)"),eq(false),eq(false),eq(""),eq(""),
+            eq(SupportDefaultsMigration.WELCOME),isNull(),isNull(),eq("CHAT_COMPLETIONS"));
+    }
+    @Test void unconfiguredServiceCannotSendNetworkRequests() {
+        config.put("ai_base_url","");
+        config.put("ai_model","");
+        assertEquals(400,assertThrows(ResponseStatusException.class,()->controller.testAi("Bearer test",null)).getStatusCode().value());
+        assertEquals(400,assertThrows(ResponseStatusException.class,()->controller.availableModels("Bearer test",null)).getStatusCode().value());
+        verifyNoInteractions(http);
     }
     @Test void unknownProtocolIsRejectedBeforeNetworkOrWrite() {
         assertEquals(400,assertThrows(ResponseStatusException.class,()->controller.updateConfig("Bearer test",Map.of("adminOnline",false,"aiEnabled",true,"aiProtocol","INVALID"))).getStatusCode().value());
